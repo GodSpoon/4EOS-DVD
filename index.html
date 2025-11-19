@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bouncing Logo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+            font-family: Arial, sans-serif;
+        }
+        
+        canvas {
+            display: block;
+            background: #000;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #fff;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="stats">
+        Close calls: <span id="closeCallCount">0</span><br>
+        Closest miss: <span id="closestMiss">--</span>px
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statsEl = document.getElementById('closeCallCount');
+        const closestMissEl = document.getElementById('closestMiss');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const logo = new Image();
+        logo.src = 'https://images.squarespace-cdn.com/content/v1/5df787aa9acc0b47024280d8/10eba5da-ca8b-464b-8f48-e9de0f6fe2ec/Untitled+design+%2854%29.png?format=1500w';
+        
+        const logoWidth = 300;
+        const logoHeight = 200;
+        
+        let x = Math.random() * (canvas.width - logoWidth);
+        let y = Math.random() * (canvas.height - logoHeight);
+        let dx = 2;
+        let dy = 2;
+        
+        let hue = Math.random() * 360;
+        let closeCalls = 0;
+        let closestMiss = Infinity;
+        
+        const CORNER_THRESHOLD = 15;
+        const CLOSE_CALL_THRESHOLD = 20;
+        
+        function checkCornerDistance() {
+            const corners = [
+                {x: 0, y: 0},
+                {x: canvas.width - logoWidth, y: 0},
+                {x: 0, y: canvas.height - logoHeight},
+                {x: canvas.width - logoWidth, y: canvas.height - logoHeight}
+            ];
+            
+            let minDistance = Infinity;
+            
+            corners.forEach(corner => {
+                const dist = Math.sqrt(
+                    Math.pow(x - corner.x, 2) + Math.pow(y - corner.y, 2)
+                );
+                minDistance = Math.min(minDistance, dist);
+            });
+            
+            if (minDistance < closestMiss) {
+                closestMiss = minDistance;
+                closestMissEl.textContent = minDistance.toFixed(2);
+            }
+            
+            if (minDistance < CLOSE_CALL_THRESHOLD) {
+                closeCalls++;
+                statsEl.textContent = closeCalls;
+            }
+            
+            return minDistance < CORNER_THRESHOLD;
+        }
+        
+        function avoidCorner() {
+            const centerX = x + logoWidth / 2;
+            const centerY = y + logoHeight / 2;
+            const canvasCenterX = canvas.width / 2;
+            const canvasCenterY = canvas.height / 2;
+            
+            if (centerX < canvasCenterX) {
+                dx = Math.abs(dx) + 0.1;
+            } else {
+                dx = -Math.abs(dx) - 0.1;
+            }
+            
+            if (centerY < canvasCenterY) {
+                dy = Math.abs(dy) + 0.1;
+            } else {
+                dy = -Math.abs(dy) - 0.1;
+            }
+        }
+        
+        function animate() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            x += dx;
+            y += dy;
+            
+            if (x + logoWidth >= canvas.width || x <= 0) {
+                dx = -dx;
+                hue = Math.random() * 360;
+            }
+            
+            if (y + logoHeight >= canvas.height || y <= 0) {
+                dy = -dy;
+                hue = Math.random() * 360;
+            }
+            
+            if (checkCornerDistance()) {
+                avoidCorner();
+            }
+            
+            x = Math.max(0, Math.min(x, canvas.width - logoWidth));
+            y = Math.max(0, Math.min(y, canvas.height - logoHeight));
+            
+            ctx.save();
+            ctx.filter = `hue-rotate(${hue}deg)`;
+            ctx.drawImage(logo, x, y, logoWidth, logoHeight);
+            ctx.restore();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        logo.onload = () => {
+            animate();
+        };
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
